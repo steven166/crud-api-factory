@@ -1,0 +1,39 @@
+{
+  "name": "crud-api-factory",
+  "version": "1.0.0",
+  "description": "Crud Api Factory",
+  "main": "index.js",
+  "author": "S. Hermans <s.hermans@maxxton.com>",
+  "license": "MIT",
+  "repository": "https://github.com/steven166/crud-api-factory",
+  "scripts": {
+    "build": "rm -rf dist/* && (mkdir dist || true) && yarn run _copy.resources && yarn run _copy.schemas && ./node_modules/.bin/tsc -p tsconfig.build.json",
+    "setup": "yarn --freeze-lockfile",
+    "link": "cd dist && yarn link",
+    "lint": "./node_modules/.bin/tslint -e **/node_modules/** --project tsconfig.json",
+    "watch": "rm -rf dist/* && (mkdir dist || true) && yarn run _copy.resources && yarn run _copy.schemas && yarn run link && ./node_modules/.bin/tsc -p tsconfig.json -w",
+    "watchWin": "rm -rf dist/* && (mkdir dist || true) && yarn run _copy.resources && yarn run link && .\\node_modules\\.bin\\tsc -p tsconfig.json -w",
+    "clean": "rm -rf dist/*",
+    "_copy.schemas": "for line in $(find src/* -name \"*.json\"); do mkdir -p dist/${line:4} && rmdir dist/${line:4} && cp ${line} dist/${line:4}; done",
+    "_copy.resources": "cp README.md dist && yarn run _copy.package.json",
+    "_copy.package.json": "node -p \"var json = require('./package.json'); json.peerDependencies = json.dependencies; delete json.dependencies; delete json.scripts; require('fs').writeFileSync('dist/package.json', JSON.stringify(json, undefined, 2));\"",
+    "test": "rm -rf dist/* && (mkdir dist || true) && yarn run _copy.resources && yarn run _copy.schemas && ./node_modules/.bin/tsc -p tsconfig.json && ./node_modules/.bin/nyc --reporter=lcovonly mocha \"./dist/**/*.spec.js\""
+  },
+  "devDependencies": {
+    "@types/chai": "^4.0.8",
+    "@types/jsonschema": "^1.1.1",
+    "@types/mocha": "^2.2.44",
+    "@types/uuid": "^3.4.3",
+    "@types/winston": "^2.3.7",
+    "chai": "^4.1.2",
+    "mocha": "^3.5.0",
+    "nyc": "^11.4.0",
+    "tslint": "^5.8.0",
+    "typescript": "^2.6.2"
+  },
+  "dependencies": {
+    "jsonschema": "^1.2.2",
+    "rxjs": "^5.5.5",
+    "winston": "^2.4.0"
+  }
+}

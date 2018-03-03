@@ -1,0 +1,9 @@
+FROM node:9.5.0-alpine
+WORKDIR /app
+
+ADD package.json yarn.lock ./
+RUN yarn --frozen-lockfile
+
+ADD tslint.json tsconfig.json tsconfig.build.json README.md ./
+
+CMD yarn run watch
