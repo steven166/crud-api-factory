@@ -1,4 +1,5 @@
-import { CollectionModel } from "../models/collection.model";
+import {CollectionModel} from "../models/collection.model";
+import {SearchOptions} from "../models/search-options.model";
 
 /**
  * Get Rest Path for a collection
@@ -60,7 +61,7 @@ export function getIdsFromPath(collection: CollectionModel, path: string): { [fi
       }
     }
   }
-
+  
   return fields;
 }
 
@@ -99,7 +100,7 @@ export function findItem(modelList: any[], fields: { [field: string]: string }):
  */
 export function getParentMatcher(collection: CollectionModel,
                                  fields: { [field: string]: string }): { [field: string]: string } {
-  let cloneFields = { ...fields };
+  let cloneFields = {...fields};
   if (collection.parent) {
     let fieldName = getCollectionIdName(collection);
     cloneFields._id = cloneFields[fieldName];
@@ -125,4 +126,35 @@ export function getSingleCollectionName(collection: CollectionModel): string {
  */
 export function getCollectionIdName(collection: CollectionModel): string {
   return getSingleCollectionName(collection) + "Id";
+}
+
+export function pathJoin(p1: string, p2: string): string {
+  while (p1.endsWith("/")) {
+    p1 = p1.substring(0, p1.length - 1);
+  }
+  while (p2.startsWith("/")) {
+    p2 = p2.substring(1);
+  }
+  return p1 + "/" + p2;
+}
+
+
+/**
+ * Get Rest path of resource
+ * @param collection
+ * @param {SearchOptions} searchOptions
+ * @returns {string}
+ */
+export function getRestPath(collection: CollectionModel, searchOptions: SearchOptions): string {
+  let path = "";
+  if (collection.parent) {
+    path += getRestPath(collection.parent, searchOptions);
+  }
+  path += `/${collection.name}`;
+  let fieldName = getCollectionIdName(collection);
+  if (searchOptions.selector[fieldName]) {
+    path += `/${searchOptions.selector[fieldName]}`;
+  }
+  
+  return path;
 }

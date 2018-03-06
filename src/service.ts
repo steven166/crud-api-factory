@@ -1,30 +1,29 @@
-import { validate } from "jsonschema";
-import * as pathUtils from "path";
+import {validate} from "jsonschema";
 import "rxjs/add/operator/filter";
 import "rxjs/add/operator/toArray";
-import { Observable } from "rxjs/Observable";
-import { Subject } from "rxjs/Subject";
-import { getIndexFields } from "./helpers/model.helper";
-import { PostDeleteHook } from "./hooks/post-delete.hook";
-import { PostUpdateHook } from "./hooks/post-update.hook";
-import { PreDeleteHook } from "./hooks/pre-delete.hook";
-import { PreUpdateHook } from "./hooks/pre-update.hook";
-import { CollectionModel } from "./models/collection.model";
-import { Scope } from "./models/scope.model";
-import { SearchOptions } from "./models/search-options.model";
-import { WatchEvent } from "./models/watch-event.model";
+import {Observable} from "rxjs/Observable";
+import {Subject} from "rxjs/Subject";
+import {getIndexFields, pathJoin} from "./helpers/model.helper";
+import {PostDeleteHook} from "./hooks/post-delete.hook";
+import {PostUpdateHook} from "./hooks/post-update.hook";
+import {PreDeleteHook} from "./hooks/pre-delete.hook";
+import {PreUpdateHook} from "./hooks/pre-update.hook";
+import {CollectionModel} from "./models/collection.model";
+import {Scope} from "./models/scope.model";
+import {SearchOptions} from "./models/search-options.model";
+import {WatchEvent} from "./models/watch-event.model";
 
 export class Service<T extends any> {
-
+  
   private postUpdateHooks: PostUpdateHook[] = [];
   private preUpdateHooks: PreUpdateHook[] = [];
   private postDeleteHooks: PostDeleteHook[] = [];
   private preDeleteHooks: PreDeleteHook[] = [];
-
+  
   constructor(private collection: CollectionModel) {
     collection.service = this;
   }
-
+  
   /**
    * Count matching results
    * @param {SearchOptions} searchOptions
@@ -34,7 +33,7 @@ export class Service<T extends any> {
     let prefix = this.getPrefix(searchOptions);
     return this.collection.db.count(prefix);
   }
-
+  
   /**
    * Get all items as stream
    * @param {SearchOptions} searchOptions
@@ -60,7 +59,7 @@ export class Service<T extends any> {
     }
     return stream;
   }
-
+  
   /**
    * Watch all items for changes
    * @param {SearchOptions} searchOptions
@@ -84,7 +83,7 @@ export class Service<T extends any> {
           }, e => stream.error(e));
         }).catch(e => stream.error(e));
       }
-
+      
       if (searchOptions.includes) {
         searchOptions.includes.forEach(include => {
           let child = this.collection.children.filter(child => child.name === include)[0];
@@ -95,14 +94,14 @@ export class Service<T extends any> {
           }
         });
       }
-
+      
     } catch (e) {
       stream.error(e);
     }
-
+    
     return stream;
   }
-
+  
   /**
    * Get single item
    * @param {SearchOptions} searchOptions
@@ -116,7 +115,7 @@ export class Service<T extends any> {
     }
     return item;
   }
-
+  
   /**
    * Create model
    * @param {T} model
@@ -125,7 +124,7 @@ export class Service<T extends any> {
   public create(model: T, scope?: Scope): Promise<T | null> {
     return this.update(model, scope);
   }
-
+  
   /**
    * Insert or update existing model
    * @param {T} model
@@ -136,9 +135,9 @@ export class Service<T extends any> {
     for (let hook of this.preUpdateHooks) {
       await hook(model, scope);
     }
-
+    
     // Create query selector
-    let searchOptions: SearchOptions = { selector: {} };
+    let searchOptions: SearchOptions = {selector: {}};
     let indexFields = getIndexFields(this.collection);
     indexFields.forEach(field => {
       if (!model[field]) {
@@ -150,11 +149,11 @@ export class Service<T extends any> {
       searchOptions.selector[field] = model[field];
     });
     let prefix = this.getPrefix(searchOptions);
-
+    
     // Validate
     model._id = this.safeId(model._id);
     await this.checkParent(searchOptions);
-
+    
     if (this.collection.schema) {
       let result = validate(model, this.collection.schema);
       if (!result.valid) {
@@ -165,17 +164,17 @@ export class Service<T extends any> {
         throw error;
       }
     }
-
+    
     await this.collection.db.save(`${prefix}${model._id}`, model);
-
+    
     scope.searchOptions = searchOptions;
     for (let hook of this.postUpdateHooks) {
       await hook(model, scope);
     }
-
+    
     return model;
   }
-
+  
   /**
    * Delete model
    * @param {SearchOptions} searchOptions
@@ -188,7 +187,7 @@ export class Service<T extends any> {
     for (let hook of this.preDeleteHooks) {
       await hook(id, scope);
     }
-
+    
     let prefix = this.getPrefix(searchOptions);
     let deleted = await this.collection.db.delete(prefix + id);
     if (deleted) {
@@ -200,7 +199,7 @@ export class Service<T extends any> {
     await this.checkParents(searchOptions);
     return false;
   }
-
+  
   /**
    * Check if first parent exists
    * @param {SearchOptions} searchOptions
@@ -213,7 +212,7 @@ export class Service<T extends any> {
         let p = parent || this.collection.parent;
         if (p) {
           let name = p.name;
-          let options = { ...searchOptions };
+          let options = {...searchOptions};
           let fields = getIndexFields(p);
           let parentOptions = {};
           fields.forEach(field => {
@@ -224,8 +223,8 @@ export class Service<T extends any> {
             resolve(true);
             return;
           }
-
-          p.service.getOne({ selector: parentOptions }).then(result => {
+          
+          p.service.getOne({selector: parentOptions}).then(result => {
             if (result) {
               resolve(true);
             } else {
@@ -245,7 +244,7 @@ export class Service<T extends any> {
       }
     });
   }
-
+  
   /**
    * Check if all parents exists
    * @param {SearchOptions} searchOptions
@@ -272,23 +271,23 @@ export class Service<T extends any> {
       }
     });
   }
-
+  
   public onPostUpdate(postUpdateHook: PostUpdateHook): void {
     this.postUpdateHooks.push(postUpdateHook);
   }
-
+  
   public onPreUpdate(preUpdateHook: PreUpdateHook): void {
     this.preUpdateHooks.push(preUpdateHook);
   }
-
+  
   public onPostDelete(postDeleteHook: PostDeleteHook): void {
     this.postDeleteHooks.push(postDeleteHook);
   }
-
+  
   public onPreDelete(preDeleteHook: PreDeleteHook): void {
     this.preDeleteHooks.push(preDeleteHook);
   }
-
+  
   /**
    * Map database model to domain model
    * @param {T} model
@@ -297,12 +296,12 @@ export class Service<T extends any> {
   private mapModel(model: T): T {
     if (model) {
       Object.keys(model._id).map(field => {
-        return { key: field, value: model._id[field] };
+        return {key: field, value: model._id[field]};
       }).forEach(fieldSet => model[fieldSet.key] = fieldSet.value);
     }
     return model;
   }
-
+  
   /**
    * Get prefxx of the resource
    * @param {SearchOptions} searchOptions
@@ -312,13 +311,13 @@ export class Service<T extends any> {
     let fields = getIndexFields(this.collection);
     let path = "/" + this.collection.name;
     fields.forEach(field => {
-      path = pathUtils.join(path, searchOptions.selector[field] || "");
+      path = pathJoin(path, searchOptions.selector[field] || "");
     });
     return path + "/";
   }
-
+  
   private safeId(id: string): string {
     return encodeURIComponent(id.toLowerCase());
   }
-
+  
 }

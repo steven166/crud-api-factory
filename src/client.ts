@@ -1,7 +1,7 @@
 import { Observable } from "rxjs/Observable";
 import { Subject } from "rxjs/Subject";
 import * as winston from "winston";
-import { getIndexFields } from "./helpers/model.helper";
+import {getIndexFields, getRestPath, pathJoin} from "./helpers/model.helper";
 import { CollectionModel } from "./models/collection.model";
 import { SearchOptions } from "./models/search-options.model";
 import { WatchEvent } from "./models/watch-event.model";
@@ -96,11 +96,11 @@ export class Client<T> {
    * @param {{[p: string]: string}} search
    * @returns {string}
    */
-  private getPath(searchOptions: SearchOptions, search?: { [key: string]: string }): string {
-    let prefix = this.getPrefix(searchOptions);
+  private getPath(searchOptions: SearchOptions, search: { [key: string]: string } = {}): string {
+    let prefix = getRestPath(this.collection, searchOptions);
     let path = `${this.basePath}/${this.collection.version}${prefix}`;
     if (searchOptions.includes) {
-      search.includes = searchOptions.includes.join(",");
+      search.include = searchOptions.includes.join(",");
     }
     if (search) {
       let first = true;
@@ -116,27 +116,6 @@ export class Client<T> {
       }
     }
     return path;
-  }
-
-  /**
-   * Get prefix of the resource
-   * @param {SearchOptions} searchOptions
-   * @returns {string}
-   */
-  private getPrefix(searchOptions: SearchOptions): string {
-    let fields = getIndexFields(this.collection);
-    let path = "/" + this.collection.name;
-    fields.forEach(field => {
-      let suffix = searchOptions.selector[field] || "";
-      if (path.endsWith("/") && suffix.startsWith("/")) {
-        path = path + suffix.substring(1);
-      } else if (path.endsWith("/") || suffix.startsWith("/")) {
-        path = path + suffix;
-      } else {
-        path = path + "/" + suffix;
-      }
-    });
-    return path + "/";
   }
 
 }

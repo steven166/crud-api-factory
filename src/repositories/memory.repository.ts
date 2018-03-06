@@ -1,8 +1,7 @@
-import * as pathUtils from "path";
 import { Observable } from "rxjs/Observable";
 import { Observer } from "rxjs/Observer";
 import * as winston from "winston";
-import { getIdsFromPath } from "../helpers/model.helper";
+import {getIdsFromPath, pathJoin} from "../helpers/model.helper";
 import { WatchEvent, WatchEventType } from "../models/watch-event.model";
 import { Repository } from "./repository";
 
@@ -44,7 +43,7 @@ export class MemoryRepository<T> extends Repository<T> {
     if (!folder) {
       return null;
     }
-    let segments = path.split("/");
+    let segments = p.split("/");
     let file = folder[segments[segments.length - 1]];
     return file || null;
   }
@@ -162,7 +161,7 @@ export class MemoryRepository<T> extends Repository<T> {
   }
 
   private getPath(path: string) {
-    return pathUtils.join(this.name, path);
+    return pathJoin(this.name, path);
   }
 
   private getFolder(path: string): Map<string, any> | null {
